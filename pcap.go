@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/pcapgo"
+
+	"github.com/Hjdskes/ET4397IN/dns"
 )
 
 var (
@@ -17,6 +20,18 @@ var (
 	err    error
 	w      *pcapgo.Writer
 )
+
+func extractPayload(packet gopacket.Packet) ([]byte, error) {
+	// FIXME: assumes that all DNS packets come over UDP, and that every UDP
+	// packet does indeed contain a DNS packet. Gopacket does not support
+	// DNS over TCP: https://github.com/google/gopacket/issues/236
+
+	if packet.Layer(layers.LayerTypeUDP) != nil {
+		return packet.TransportLayer().LayerPayload(), nil
+	}
+
+	return nil, errors.New("Packet is not UDP; no DNS packet to extract")
+}
 
 func main() {
 	// Process command-line arguments.
@@ -70,10 +85,22 @@ func main() {
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
 		// Process each packet.
-		fmt.Println(packet)
+		fmt.Println("======== New packet ========\n\n", packet)
 		if w != nil {
 			w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 		}
 
+		payload, err := extractPayload(packet)
+		if err != nil {
+			// Silently ignore everything that is not a DNS packet.
+			continue
+		}
+
+		dns, err := dns.DecodeDNS(payload)
+		if err != nil {
+			log.Println(err)
+		} else {
+			fmt.Println(dns)
+		}
 	}
 }
