@@ -25,6 +25,7 @@ func main() {
 	promiscuous := flag.Bool("promiscuous", false, "Put the device in promiscuous mode. (default false)")
 	filePath := flag.String("path", "", "Save the recorded packets into a file specified by this flag.")
 	source := flag.String("source", "", "Read packets from the file specified by this flag.")
+	filter := flag.String("filter", "", "Set a BPF.")
 	flag.Parse()
 
 	if *source != "" {
@@ -47,13 +48,21 @@ func main() {
 		if *filePath != "" {
 			f, err := os.Create(*filePath)
 			if err != nil {
-				log.Error(err)
+				log.Print(err)
 			} else {
 				w = pcapgo.NewWriter(f)
 				// Write the header into the file.
 				w.WriteFileHeader(uint32(*snaplen), layers.LinkTypeEthernet)
 				defer f.Close()
 			}
+		}
+	}
+
+	if *filter != "" {
+		// If a BPF is given, apply it.
+		err = handle.SetBPFFilter(*filter)
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 
@@ -65,5 +74,6 @@ func main() {
 		if w != nil {
 			w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 		}
+
 	}
 }
