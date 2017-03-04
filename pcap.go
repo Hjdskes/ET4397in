@@ -38,9 +38,9 @@ func main() {
 	device := flag.String("device", "enp9s0", "The device to capture packets from.")
 	snaplen := flag.Int("snaplen", 65535, "The maximum size to read for each packet.")
 	promiscuous := flag.Bool("promiscuous", false, "Put the device in promiscuous mode. (default false)")
-	filePath := flag.String("path", "", "Save the recorded packets into a file specified by this flag.")
-	source := flag.String("source", "", "Read packets from the file specified by this flag.")
-	filter := flag.String("filter", "", "Set a BPF.")
+	filePath := flag.String("path", "", "Save the recorded packets into a file specified by this flag. (default none)")
+	source := flag.String("source", "", "Read packets from the file specified by this flag. (default none; read from device)")
+	filter := flag.String("filter", "", "Set a BPF. (default none)")
 	flag.Parse()
 
 	if *source != "" {
@@ -81,7 +81,7 @@ func main() {
 		}
 	}
 
-	// Create a PacketSource, from which we can retrieve packets.
+	// Create a PacketSource from which we can retrieve packets.
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
 		// Process each packet.
