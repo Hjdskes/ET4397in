@@ -79,14 +79,16 @@ func main() {
 	// Create a PacketSource from which we can retrieve packets.
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
-		data := packet.Data()
-
+		// Publish this message's contents for each layer it contains.
+		// TODO: should probably do this the other way around and
+		// publish the message for every layer a module has subscribed
+		// too; there are much more layer types than modules...
 		for _, layer := range packet.Layers() {
 			hub.Publish(layer.LayerType(), layer.LayerContents())
 		}
 
 		if w != nil {
-			w.WritePacket(packet.Metadata().CaptureInfo, data)
+			w.WritePacket(packet.Metadata().CaptureInfo, packet.String())
 		}
 	}
 }
