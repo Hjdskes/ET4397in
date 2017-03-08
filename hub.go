@@ -1,4 +1,4 @@
-// This package implements Simple publish / subscribe processing, inspired after
+// This package implements simple publish / subscribe processing, inspired after
 // https://github.com/vtg/pubsub/blob/master/pubsub.go.
 // Usage:
 //
@@ -19,7 +19,7 @@ type Handler func(data []byte)
 
 // TODO: make *[]byte? Currently, the byte slice might is copied for every
 // call, which lowers performance. However, modules that (accidentally) modify
-// the data now do not interface with eachother.
+// the data now do not interfere with eachother.
 type message struct {
 	layer gopacket.LayerType
 	data  []byte
