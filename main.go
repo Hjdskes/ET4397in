@@ -70,25 +70,20 @@ func main() {
 
 	// Create all the modules and subscribe them on the hub.
 	// TODO: make the selection of modules configurable on the command-line
-	// TODO: make the file writer a module too?
+	// TODO: make the file writer a module too? For this to work, modules
+	// need to be initialized with command-line parameters.
 	modules := []module.Module{module.DNSModule{}}
 	for _, module := range modules {
-		hub.Subscribe(module.LayerType(), module.Process)
+		hub.Subscribe(module.Topics(), module.Process)
 	}
 
 	// Create a PacketSource from which we can retrieve packets.
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
-		// Publish this message's contents for each layer it contains.
-		// TODO: should probably do this the other way around and
-		// publish the message for every layer a module has subscribed
-		// too; there are much more layer types than modules...
-		for _, layer := range packet.Layers() {
-			hub.Publish(layer.LayerType(), layer.LayerContents())
-		}
+		hub.Publish("packet", packet)
 
 		if w != nil {
-			w.WritePacket(packet.Metadata().CaptureInfo, packet.String())
+			w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 		}
 	}
 }
