@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Hjdskes/ET4397IN/hub"
 	"github.com/Hjdskes/ET4397IN/module"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -65,7 +66,7 @@ func main() {
 	}
 
 	// Create the message hub.
-	hub := NewHub()
+	hub := hub.NewHub()
 	hub.Start()
 
 	// Create all the modules and subscribe them on the hub.
@@ -74,7 +75,7 @@ func main() {
 	// need to be initialized with command-line parameters.
 	modules := []module.Module{module.DNSModule{}}
 	for _, module := range modules {
-		hub.Subscribe(module.Topics(), module.Process)
+		hub.Subscribe(module)
 	}
 
 	// Create a PacketSource from which we can retrieve packets.

@@ -1,16 +1,21 @@
 // This package implements simple publish / subscribe processing, inspired after
 // https://github.com/vtg/pubsub.
-// Usage:
+package hub
+
+// Every type wanting to subscribe on the message bus should implement the Subscriber interface.
+// It dictates that the subscriber is able to declare the topics they want to receive messages for,
+// and that they can receive arbitrary arguments over the message bus.
 //
-//     hub := NewHub()
-//     hub.Start()
-//     for ... {
-//         hub.Subscribe(..., ...)
-//     }
-//     ...
-//     hub.Publish(..., ...)
-//
-package main
+// The subscriber itself is responsible for converting the arguments to the correct type.
+type Subscriber interface {
+	// Topics returns an array of topics that the Subscriber subcribes to.
+	Topics() []string
+
+	// Receive is called when there is a message under a certain topic to which the
+	// subscriber has subscribed. The message's contents are passed as arguments; the subscriber
+	// is responsible for converting them to the proper format.
+	Receive(args []interface{})
+}
 
 // TODO: make *[]byte? Currently, the byte slice might is copied for every
 // call, which lowers performance. However, modules that (accidentally) modify
@@ -20,24 +25,24 @@ type message struct {
 	args  []interface{}
 }
 
-type subscriber struct {
+type subscription struct {
 	topics  []string
 	handler func([]interface{})
 }
 
 // The Hub struct is the "broker" through which all messages go.
 type Hub struct {
-	pub         chan message
-	sub         chan subscriber
-	subscribers map[string][]subscriber
+	pub           chan message
+	sub           chan subscription
+	subscriptions map[string][]subscription
 }
 
 // Create a new Hub.
 func NewHub() *Hub {
 	return &Hub{
-		pub:         make(chan message),
-		sub:         make(chan subscriber),
-		subscribers: make(map[string][]subscriber),
+		pub:           make(chan message),
+		sub:           make(chan subscription),
+		subscriptions: make(map[string][]subscription),
 	}
 }
 
@@ -46,13 +51,13 @@ func (h *Hub) Publish(topic string, args ...interface{}) {
 	h.pub <- message{topic, args}
 }
 
-// Subscribe to be passed any data meant for these topics.
-func (h *Hub) Subscribe(topics []string, handler func([]interface{})) {
-	h.sub <- subscriber{topics, handler}
+// Subscribe subcribes a Subscriber for all its declared topics.
+func (h *Hub) Subscribe(s Subscriber) {
+	h.sub <- subscription{s.Topics(), s.Receive}
 }
 
-// Start the hub; run this before you start adding subscribers and publishing
-// messages.
+// Start the hub. This should be run before any subscription are added or messages
+// are published.
 func (h *Hub) Start() {
 	// A goroutine to handle new subscribers. The Subscribe method above
 	// sends new subscribers on the sub channel, which are received here and
@@ -61,7 +66,7 @@ func (h *Hub) Start() {
 		for {
 			sub := <-h.sub
 			for _, topic := range sub.topics {
-				h.subscribers[topic] = append(h.subscribers[topic], sub)
+				h.subscriptions[topic] = append(h.subscriptions[topic], sub)
 			}
 		}
 	}()
@@ -74,7 +79,7 @@ func (h *Hub) Start() {
 	go func() {
 		for {
 			msg := <-h.pub
-			for topic, subs := range h.subscribers {
+			for topic, subs := range h.subscriptions {
 				if topic == msg.topic {
 					for _, sub := range subs {
 						sub.handler(msg.args)
