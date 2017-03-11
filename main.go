@@ -69,11 +69,20 @@ func main() {
 	hub := hub.NewHub()
 	hub.Start()
 
-	// Create all the modules and subscribe them on the hub.
+	// Create all the modules.
 	// TODO: make the selection of modules configurable on the command-line
-	// TODO: make the file writer a module too? For this to work, modules
-	// need to be initialized with command-line parameters.
-	modules := []module.Module{module.ARPModule{}, module.DNSModule{}}
+	modules := []module.Module{
+		module.ARPModule{Hub: hub},
+		//module.DNSModule{},
+		module.LogModule{},
+	}
+
+	// If there is a writer, append the WriteModule to the list of modules.
+	if w != nil {
+		modules = append(modules, module.WriteModule{Writer: w})
+	}
+
+	// Subscribe all modules on the bus.
 	for _, module := range modules {
 		hub.Subscribe(module)
 	}
@@ -82,9 +91,5 @@ func main() {
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
 		hub.Publish("packet", packet)
-
-		if w != nil {
-			w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
-		}
 	}
 }
