@@ -73,7 +73,7 @@ func main() {
 	// TODO: make the selection of modules configurable on the command-line
 	// TODO: make the file writer a module too? For this to work, modules
 	// need to be initialized with command-line parameters.
-	modules := []module.Module{module.DNSModule{}}
+	modules := []module.Module{module.ARPModule{}, module.DNSModule{}}
 	for _, module := range modules {
 		hub.Subscribe(module)
 	}
