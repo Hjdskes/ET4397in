@@ -5,6 +5,10 @@ import (
 	"errors"
 )
 
+var (
+	BroadcastAddress = []byte{'\xff', '\xff', '\xff', '\xff', '\xff', '\xff'}
+)
+
 // ARPOpcode is a two byte field that specifies the kind of ARP packet.
 type ARPOpcode uint16
 
