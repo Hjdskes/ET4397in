@@ -1,0 +1,15 @@
+{
+	"arp-bindings":
+	{
+		"192.168.0.1":
+		[
+			"aa:bb:cc:dd:ee:ff"
+		],
+		"192.168.0.2":
+		[
+			"aa:aa:aa:aa:aa:aa",
+			"bb:bb:bb:bb:bb:bb"
+		]
+	}
+}
+

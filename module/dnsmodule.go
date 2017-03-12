@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Hjdskes/ET4397IN/config"
 	"github.com/Hjdskes/ET4397IN/dns"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 )
 
 type DNSModule struct {
+}
+
+func (m DNSModule) Init(config *config.Configuration) error {
+	return nil
 }
 
 func (m DNSModule) Topics() []string {

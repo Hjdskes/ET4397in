@@ -3,12 +3,17 @@ package module
 import (
 	"log"
 
+	"github.com/Hjdskes/ET4397IN/config"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcapgo"
 )
 
 type WriteModule struct {
 	Writer *pcapgo.Writer
+}
+
+func (m WriteModule) Init(config *config.Configuration) error {
+	return nil
 }
 
 func (m WriteModule) Topics() []string {

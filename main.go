@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Hjdskes/ET4397IN/config"
 	"github.com/Hjdskes/ET4397IN/hub"
 	"github.com/Hjdskes/ET4397IN/module"
 	"github.com/google/gopacket"
@@ -15,6 +16,7 @@ import (
 
 func main() {
 	var handle *pcap.Handle
+	var configuration *config.Configuration
 	var w *pcapgo.Writer
 	var err error
 
@@ -25,6 +27,8 @@ func main() {
 	filePath := flag.String("path", "", "Save the recorded packets into a file specified by this flag. (default none)")
 	source := flag.String("source", "", "Read packets from the file specified by this flag. (default none; read from device)")
 	filter := flag.String("filter", "", "Set a BPF. (default none)")
+	// TODO: sensible default.
+	configFile := flag.String("config", "config.json", "Path to the configuration file")
 	flag.Parse()
 
 	if *source != "" {
@@ -65,6 +69,12 @@ func main() {
 		}
 	}
 
+	// Read the configuration file.
+	configuration, err = config.New(*configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Create the message hub.
 	hub := hub.NewHub()
 	hub.Start()
@@ -82,9 +92,15 @@ func main() {
 		modules = append(modules, module.WriteModule{Writer: w})
 	}
 
-	// Subscribe all modules on the bus.
+	// Initialize all modules and subscribe them on the bus. If a module
+	// cannot be initialized, it is not subscribed on the bus.
 	for _, module := range modules {
-		hub.Subscribe(module)
+		err = module.Init(configuration)
+		if err != nil {
+			log.Println(err)
+		} else {
+			hub.Subscribe(module)
+		}
 	}
 
 	// Create a PacketSource from which we can retrieve packets.

@@ -3,9 +3,15 @@ package module
 import (
 	"fmt"
 	"log"
+
+	"github.com/Hjdskes/ET4397IN/config"
 )
 
 type LogModule struct {
+}
+
+func (m LogModule) Init(config *config.Configuration) error {
+	return nil
 }
 
 func (m LogModule) Topics() []string {
