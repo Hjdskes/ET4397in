@@ -1,6 +1,7 @@
 package arp
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 )
@@ -149,4 +150,21 @@ func (a *ARP) decode(data []byte) error {
 	a.THAddress = data[8+a.HLength+a.PLength : 8+2*a.HLength+a.PLength]
 	a.TPAddress = data[8+2*a.HLength+a.PLength : 8+2*a.HLength+2*a.PLength]
 	return nil
+}
+
+func (a *ARP) IsUnicastRequest() bool {
+	return !bytes.Equal(a.THAddress, BroadcastAddress)
+}
+
+func (a *ARP) IsGratuitous() bool {
+	return bytes.Equal(a.SPAddress, a.TPAddress) &&
+		bytes.Equal(a.THAddress, BroadcastAddress)
+}
+
+func (a *ARP) IsBindingEthernet() bool {
+	return bytes.Equal(a.SHAddress, BroadcastAddress)
+}
+
+func (a *ARP) IsBroadcastReply() bool {
+	return bytes.Equal(a.TPAddress, BroadcastAddress)
 }
