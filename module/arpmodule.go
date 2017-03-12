@@ -93,12 +93,12 @@ func (m ARPModule) analyse(a *arp.ARP) {
 
 	switch a.Opcode {
 	case arp.ARPOpcodeRequest:
-		if a.IsUnicastRequest() {
-			cat = "notice"
-			msg = fmt.Sprintf(unicastRequest, a.SPAddress, a.TPAddress)
-		} else if a.IsGratuitous() {
+		if a.IsGratuitous() {
 			cat = "notice"
 			msg = fmt.Sprintf(gratuitous, a.SPAddress, a.Opcode)
+		} else if a.IsUnicastRequest() {
+			cat = "notice"
+			msg = fmt.Sprintf(unicastRequest, a.SPAddress, a.TPAddress)
 		}
 	case arp.ARPOpcodeReply:
 		if a.IsBindingEthernet() {
