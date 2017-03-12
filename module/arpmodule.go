@@ -36,9 +36,13 @@ type ARPModule struct {
 	// hence that one IP address may be allocated to more than one MAC
 	// address (in e.g. failover setups).
 	validBindings map[string][][]byte
+
+	// A list of seen ARP packets to detect implementation flaws in other
+	// hosts.
+	seen []*arp.ARP
 }
 
-func (m ARPModule) Init(config *config.Configuration) error {
+func (m *ARPModule) Init(config *config.Configuration) error {
 	m.validBindings = make(map[string][][]byte)
 
 	for ip, macs := range config.ARPBindings {
@@ -55,11 +59,11 @@ func (m ARPModule) Init(config *config.Configuration) error {
 	return nil
 }
 
-func (m ARPModule) Topics() []string {
+func (m *ARPModule) Topics() []string {
 	return []string{"packet"}
 }
 
-func (m ARPModule) Receive(args []interface{}) {
+func (m *ARPModule) Receive(args []interface{}) {
 	packet, ok := args[0].(gopacket.Packet)
 	if !ok {
 		log.Println("ARPModule received data that was not a packet")
@@ -85,43 +89,72 @@ const (
 	bindEthernet   = "Host %v is trying to bind to the Ethernet broadcast address"
 	broadcastReply = "Host %v is replying to a request from host %v using a broadcast message"
 	invalidBinding = "Host %v is trying to bind to MAC address %v that is not in the list"
+	spuriousReply  = "Host %v is sending a spurious reply"
 )
 
-func (m ARPModule) analyse(a *arp.ARP) {
-	var cat string
-	var msg string
-
+func (m *ARPModule) analyse(a *arp.ARP) {
 	switch a.Opcode {
 	case arp.ARPOpcodeRequest:
 		if a.IsGratuitous() {
-			cat = "notice"
-			msg = fmt.Sprintf(gratuitous, a.SPAddress, a.Opcode)
+			m.Hub.Publish("log", "notice", fmt.Sprintf(gratuitous, a.SPAddress, a.Opcode))
 		} else if a.IsUnicastRequest() {
-			cat = "notice"
-			msg = fmt.Sprintf(unicastRequest, a.SPAddress, a.TPAddress)
+			m.Hub.Publish("log", "notice", fmt.Sprintf(unicastRequest, a.SPAddress, a.TPAddress))
+		}
+
+		// Add the request to the remembered list if it isn't
+		// gratuitous.
+		if !a.IsGratuitous() {
+			m.seen = append(m.seen, a)
 		}
 	case arp.ARPOpcodeReply:
-		if a.IsBindingEthernet() {
-			cat = "error"
-			msg = fmt.Sprintf(bindEthernet, a.SPAddress)
-		} else if a.IsBroadcastReply() {
-			cat = "notice"
-			msg = fmt.Sprintf(broadcastReply, a.SPAddress, a.TPAddress)
-		} else if a.IsGratuitous() {
-			cat = "notice"
-			msg = fmt.Sprintf(gratuitous, a.SPAddress, a.Opcode)
-		} else if !m.isValidBinding(a) {
-			cat = "notice"
-			msg = fmt.Sprintf(invalidBinding, a.SPAddress, a.SHAddress)
+		// First check for implementation flaws by means of spurious
+		// replies.
+		if m.isSpurious(a) {
+			m.Hub.Publish("log", "notice", fmt.Sprintf(spuriousReply, a.SPAddress))
 		}
-	}
 
-	if cat != "" && msg != "" {
-		m.Hub.Publish("log", cat, msg)
+		// Now we check for malicious ARP replies.
+		if a.IsBindingEthernet() {
+			m.Hub.Publish("log", "error", fmt.Sprintf(bindEthernet, a.SPAddress))
+		} else if a.IsBroadcastReply() {
+			m.Hub.Publish("log", "notice", fmt.Sprintf(broadcastReply, a.SPAddress, a.TPAddress))
+		} else if a.IsGratuitous() {
+			m.Hub.Publish("log", "notice", fmt.Sprintf(gratuitous, a.SPAddress, a.Opcode))
+		} else if !m.isValidBinding(a) {
+			m.Hub.Publish("log", "notice", fmt.Sprintf(invalidBinding, a.SPAddress, a.SHAddress))
+		}
 	}
 }
 
-func (m ARPModule) isValidBinding(a *arp.ARP) bool {
+func (m *ARPModule) isSpurious(a *arp.ARP) bool {
+	// A gratuitous reply obviously does not have a matching request in the
+	// remembered list, but it is not a spurious reply.
+	if a.IsGratuitous() {
+		return false
+	}
+
+	for i, request := range m.seen {
+		// If the target in the current packet is equal to the
+		// sender in the remembered packet and vice versa, this
+		// is a reply to a request we have seen.
+		if bytes.Equal(a.TPAddress, request.SPAddress) &&
+			bytes.Equal(a.SPAddress, request.TPAddress) {
+			// When a remembered request has been found, we
+			// know that this reply is not spurious so we remove the
+			// request from the list and return false.
+			copy(m.seen[i:], m.seen[i+1:])
+			m.seen[len(m.seen)-1] = nil
+			m.seen = m.seen[:len(m.seen)-1]
+			return false
+		}
+	}
+
+	// This is only reached if there is no request in the remembered set
+	// matching this reply; hence, this reply is spurious.
+	return true
+}
+
+func (m *ARPModule) isValidBinding(a *arp.ARP) bool {
 	// Retrieve the list of allowed MAC addresses for this IP address.
 	// Note: converting the IP address to a string here is kind of ugly,
 	// since bytes of an IP address may not be valid UTF-8 strings (which is

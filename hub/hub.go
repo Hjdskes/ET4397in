@@ -40,8 +40,10 @@ type Hub struct {
 // Create a new Hub.
 func NewHub() *Hub {
 	return &Hub{
-		pub:           make(chan message, 5),
-		sub:           make(chan subscription, 5),
+		// TODO: if there are more than 50 messages, the program
+		// deadlocks. I need to find a proper solution to this.
+		pub:           make(chan message, 50),
+		sub:           make(chan subscription, 50),
 		subscriptions: make(map[string][]subscription),
 	}
 }

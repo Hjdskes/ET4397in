@@ -82,7 +82,7 @@ func main() {
 	// Create all the modules.
 	// TODO: make the selection of modules configurable on the command-line
 	modules := []module.Module{
-		module.ARPModule{Hub: hub},
+		&module.ARPModule{Hub: hub},
 		//module.DNSModule{},
 		module.LogModule{},
 	}
