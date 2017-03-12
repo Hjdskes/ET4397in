@@ -108,4 +108,10 @@ func main() {
 	for packet := range packetSource.Packets() {
 		hub.Publish("packet", packet)
 	}
+
+	// Hack to keep the program running when there are no more packets to
+	// receive, this happens e.g. when all packets have been read from a
+	// pcap file but not yet processed.
+	for {
+	}
 }

@@ -40,8 +40,8 @@ type Hub struct {
 // Create a new Hub.
 func NewHub() *Hub {
 	return &Hub{
-		pub:           make(chan message),
-		sub:           make(chan subscription),
+		pub:           make(chan message, 5),
+		sub:           make(chan subscription, 5),
 		subscriptions: make(map[string][]subscription),
 	}
 }
@@ -79,12 +79,9 @@ func (h *Hub) Start() {
 	go func() {
 		for {
 			msg := <-h.pub
-			for topic, subs := range h.subscriptions {
-				if topic == msg.topic {
-					for _, sub := range subs {
-						sub.handler(msg.args)
-					}
-				}
+			subs := h.subscriptions[msg.topic]
+			for _, sub := range subs {
+				sub.handler(msg.args)
 			}
 		}
 	}()

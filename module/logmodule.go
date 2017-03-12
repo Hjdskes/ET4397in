@@ -15,19 +15,24 @@ func (m LogModule) Init(config *config.Configuration) error {
 }
 
 func (m LogModule) Topics() []string {
-	return []string{"notice", "error"}
+	return []string{"log"}
 }
 
 func (m LogModule) Receive(args []interface{}) {
+	if len(args) != 2 {
+		log.Println("LogModule needs a category and a message")
+		return
+	}
+
 	cat, ok := args[0].(string)
 	if !ok {
-		log.Println("LogModule received data that didn't start with a category")
+		log.Println("LogModule category should be a string, defaulting to notice")
 		cat = "notice"
 	}
 
 	msg, ok := args[1].(string)
 	if !ok {
-		log.Println("LogModule received data that wasn't a valid string")
+		log.Println("LogModule message should be a string, aborting")
 		return
 	}
 

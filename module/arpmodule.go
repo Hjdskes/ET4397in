@@ -117,12 +117,12 @@ func (m ARPModule) analyse(a *arp.ARP) {
 	}
 
 	if cat != "" && msg != "" {
-		m.Hub.Publish(cat, msg)
+		m.Hub.Publish("log", cat, msg)
 	}
 }
 
 func (m ARPModule) isValidBinding(a *arp.ARP) bool {
-	// Retrieve the list of allows MAC addresses for this IP address.
+	// Retrieve the list of allowed MAC addresses for this IP address.
 	// Note: converting the IP address to a string here is kind of ugly,
 	// since bytes of an IP address may not be valid UTF-8 strings (which is
 	// how Go stores strings), but string values represent arbitrary byte
