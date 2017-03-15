@@ -77,7 +77,6 @@ func main() {
 
 	// Create the message hub.
 	hub := hub.NewHub()
-	hub.Start()
 
 	// Create all the modules.
 	// TODO: make the selection of modules configurable on the command-line
@@ -107,11 +106,5 @@ func main() {
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
 		hub.Publish("packet", packet)
-	}
-
-	// Hack to keep the program running when there are no more packets to
-	// receive, this happens e.g. when all packets have been read from a
-	// pcap file but not yet processed.
-	for {
 	}
 }

@@ -32,59 +32,31 @@ type subscription struct {
 
 // The Hub struct is the "broker" through which all messages go.
 type Hub struct {
-	pub           chan message
-	sub           chan subscription
 	subscriptions map[string][]subscription
 }
 
 // Create a new Hub.
 func NewHub() *Hub {
 	return &Hub{
-		// TODO: if there are more than 50 messages, the program
-		// deadlocks. I need to find a proper solution to this.
-		pub:           make(chan message, 50),
-		sub:           make(chan subscription, 50),
 		subscriptions: make(map[string][]subscription),
 	}
 }
 
 // Publish the data to be passed to any subscriber subscribed to this topic.
 func (h *Hub) Publish(topic string, args ...interface{}) {
-	h.pub <- message{topic, args}
+	// For each registered topic, it is checked if it matches the topic of
+	// the received message. If so, the message's arguments are sent to each
+	// subscriber subscribed to that topic.
+	subs := h.subscriptions[topic]
+	for _, sub := range subs {
+		sub.handler(args)
+	}
 }
 
 // Subscribe subcribes a Subscriber for all its declared topics.
 func (h *Hub) Subscribe(s Subscriber) {
-	h.sub <- subscription{s.Topics(), s.Receive}
-}
-
-// Start the hub. This should be run before any subscription are added or messages
-// are published.
-func (h *Hub) Start() {
-	// A goroutine to handle new subscribers. The Subscribe method above
-	// sends new subscribers on the sub channel, which are received here and
-	// added to the list of subscribers for those particular topics.
-	go func() {
-		for {
-			sub := <-h.sub
-			for _, topic := range sub.topics {
-				h.subscriptions[topic] = append(h.subscriptions[topic], sub)
-			}
-		}
-	}()
-
-	// A goroutine to handle new messages. The Publish method above sends
-	// new messages on the pub channel, which are received here. For each
-	// registered topic, it is checked if it matches the topic of the
-	// received message. If so, the message's arguments are sent to each
-	// subscriber subscribed to that topic.
-	go func() {
-		for {
-			msg := <-h.pub
-			subs := h.subscriptions[msg.topic]
-			for _, sub := range subs {
-				sub.handler(msg.args)
-			}
-		}
-	}()
+	sub := subscription{s.Topics(), s.Receive}
+	for _, topic := range sub.topics {
+		h.subscriptions[topic] = append(h.subscriptions[topic], sub)
+	}
 }
