@@ -28,11 +28,12 @@ func (m DNSModule) Receive(args []interface{}) {
 		return
 	}
 
-	if packet.Layer(layers.LayerTypeDNS) == nil {
+	dnsLayer := packet.Layer(layers.LayerTypeDNS)
+	if dnsLayer == nil {
 		return
 	}
 
-	data := packet.TransportLayer().LayerPayload()
+	data := dnsLayer.LayerPayload()
 	dns, err := dns.DecodeDNS(data)
 	if err != nil {
 		log.Println(err)
