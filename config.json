@@ -10,6 +10,7 @@
 			"aa:aa:aa:aa:aa:aa",
 			"bb:bb:bb:bb:bb:bb"
 		]
-	}
+	},
+	"interval": 1000
 }
 

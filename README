@@ -61,9 +61,13 @@ format. Currently, the modules support the following configuration:
 		]
 	}
   ```
+* WiFi module: a JSON number called `interval`, containing the interval
+  in milliseconds within which two dissasociation or deauthentication frames or
+  two ARP requests are considered to be an attack. Example: `"interval": 1000`.
 
 If no configuration file is given, or the configuration file is not complete,
 sane defaults are applied:
 
 * ARP module: all IP to MAC bindings are considered valid.
+* WiFi module: a default interval of 1 second (1000 milliseconds) is used.
 

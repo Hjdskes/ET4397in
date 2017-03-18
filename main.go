@@ -84,6 +84,7 @@ func main() {
 		&module.ARPModule{Hub: hub},
 		//module.DNSModule{},
 		module.LogModule{},
+		&module.WiFiModule{Hub: hub},
 	}
 
 	// If there is a writer, append the WriteModule to the list of modules.
