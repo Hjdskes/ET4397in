@@ -86,3 +86,30 @@ func TestDecodeInvalidOpcode(t *testing.T) {
 	_, err := DecodeARP(packet)
 	assert.EqualError(t, err, "Opcode type should be 1 (REQUEST) or 2 (REPLY)")
 }
+
+func TestDecodeTooSmall(t *testing.T) {
+	packet := []byte{
+		'\x00', '\x01', // HAddress
+		'\x08', '\x00', // PAddress
+	}
+
+	_, err := DecodeARP(packet)
+	assert.EqualError(t, err, "Too small byte slice supplied")
+}
+
+func TestDecodeTooLargeLengths(t *testing.T) {
+	packet := []byte{
+		'\x00', '\x01', // HAddress
+		'\x08', '\x00', // PAddress
+		'\x06',         // HLength
+		'\x06',         // PLength
+		'\x00', '\x01', // Opcode
+		'\x08', '\x9e', '\x01', '\xda', '\x6d', '\xb0', //SHAddress
+		'\xc0', '\xa8', '\x00', '\x19', // SPAddress
+		'\xff', '\xff', '\xff', '\xff', '\xff', '\xff', // THAddress
+		'\xc0', '\xa8', '\x00', '\x0d', // TPAddress
+	}
+
+	_, err := DecodeARP(packet)
+	assert.EqualError(t, err, "Too small byte slice supplied")
+}

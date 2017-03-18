@@ -125,6 +125,10 @@ func DecodeARP(data []byte) (*ARP, error) {
 }
 
 func (a *ARP) decode(data []byte) error {
+	if len(data) < 8 {
+		return errors.New("Too small byte slice supplied")
+	}
+
 	a.HAddress = LinkType(binary.BigEndian.Uint16(data[0:2]))
 	if a.HAddress != LinkTypeEthernet {
 		return errors.New("Link layer protocols other than Ethernet are not supported")
@@ -145,6 +149,11 @@ func (a *ARP) decode(data []byte) error {
 	default:
 		return errors.New("Opcode type should be 1 (REQUEST) or 2 (REPLY)")
 	}
+
+	if len(data) < 8+int(2*a.HLength+2*a.PLength) {
+		return errors.New("Too small byte slice supplied")
+	}
+
 	a.SHAddress = data[8 : 8+a.HLength]
 	a.SPAddress = data[8+a.HLength : 8+a.HLength+a.PLength]
 	a.THAddress = data[8+a.HLength+a.PLength : 8+2*a.HLength+a.PLength]
