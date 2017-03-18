@@ -27,8 +27,7 @@ func main() {
 	filePath := flag.String("path", "", "Save the recorded packets into a file specified by this flag. (default none)")
 	source := flag.String("source", "", "Read packets from the file specified by this flag. (default none; read from device)")
 	filter := flag.String("filter", "", "Set a BPF. (default none)")
-	// TODO: sensible default.
-	configFile := flag.String("config", "config.json", "Path to the configuration file")
+	configFile := flag.String("config", "", "Path to the configuration file")
 	flag.Parse()
 
 	if *source != "" {
@@ -69,10 +68,11 @@ func main() {
 		}
 	}
 
-	// Read the configuration file.
+	// Read the configuration file; if it can't be found or if something
+	// else goes wrong the defaults are applied.
 	configuration, err = config.New(*configFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	// Create the message hub.

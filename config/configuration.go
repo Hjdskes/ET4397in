@@ -10,23 +10,19 @@ type Configuration struct {
 }
 
 func New(configFile string) (*Configuration, error) {
+	config := &Configuration{
+		ARPBindings: make(map[string][]string),
+	}
+
 	file, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		return &Configuration{}, err
+		return config, err
 	}
 
-	config := &Configuration{}
 	err = json.Unmarshal(file, &config)
 	if err != nil {
-		return &Configuration{}, err
+		return config, err
 	}
 
-	//for ip, macs := range config.ARPBindings {
-	//	var foo string
-	//	for _, mac := range macs {
-	//		foo += fmt.Sprintf("%v, ", mac)
-	//	}
-	//	fmt.Printf("IP: %v with bindings: %v\n", ip, foo)
-	//}
 	return config, nil
 }

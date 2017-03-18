@@ -1,7 +1,11 @@
+# Introduction
+
 This project is written in Golang, using the regular libpcap library in
 combination with gopacket. In some parts of the code, the Golang's net package
 is used. The hub package is inspired by https://github.com/vtg/pubsub. To create
 the test ARP pcap file, I used Scapy.
+
+# Installation
 
 To setup the software, you need to perform the following steps. All these steps
 are automatically executed using the install.sh script as required. Note that
@@ -35,4 +39,31 @@ GOPATH)/bin and then call it by name. You need to run the program with
 --device="enp0s3". See --help for the other options.
 
 If something doesn't work, please do send me an email!
+
+# Configuration
+
+The configuration file is found in config.json, and unsurprisingly uses the JSON
+format. Currently, the modules support the following configuration:
+
+* ARP module: a JSON object called `arp-bindings`, which contains arrays named
+  by IP addresses to the MAC addresses they are allowed to bind to. Example:
+  ```
+	"arp-bindings":
+	{
+		"192.168.0.1":
+		[
+			"aa:bb:cc:dd:ee:ff"
+		],
+		"192.168.0.2":
+		[
+			"aa:aa:aa:aa:aa:aa",
+			"bb:bb:bb:bb:bb:bb"
+		]
+	}
+  ```
+
+If no configuration file is given, or the configuration file is not complete,
+sane defaults are applied:
+
+* ARP module: all IP to MAC bindings are considered valid.
 
