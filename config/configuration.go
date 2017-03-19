@@ -13,7 +13,7 @@ type Configuration struct {
 func New(configFile string) (*Configuration, error) {
 	config := &Configuration{
 		ARPBindings: make(map[string][]string),
-		Interval:    1000,
+		Interval:    1000000,
 	}
 
 	file, err := ioutil.ReadFile(configFile)
