@@ -70,11 +70,12 @@ func (m *ARPModule) Receive(args []interface{}) {
 		return
 	}
 
-	if packet.Layer(layers.LayerTypeARP) == nil {
+	arpLayer := packet.Layer(layers.LayerTypeARP)
+	if arpLayer == nil {
 		return
 	}
 
-	data := packet.LinkLayer().LayerPayload()
+	data := arpLayer.LayerContents()
 	arp, err := arp.DecodeARP(data)
 	if err != nil {
 		m.Hub.Publish("error", err.Error())
