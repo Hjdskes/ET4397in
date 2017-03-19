@@ -31,7 +31,11 @@ cp ~/Downloads/ET4397IN.zip .
 unzip -a ET4397IN.zip
 cd ET4397IN
 
-5. Finally, build and install the package from the current directory: go install
+5. Finally, install the dependencies and build and install the package from the
+current directory:
+
+go get ./...
+go install
 
 6. The program is installed into $GOPATH/bin/. You can either call it with the
 full path, or add $GOPATH/bin to your PATH: export PATH=$PATH:$(go env
