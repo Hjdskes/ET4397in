@@ -91,12 +91,12 @@ func main() {
 	waitGroup.Add(3) // three goroutines
 
 	// Time the Bloom Filter.
-	go time("Bloom Filter", func() {
+	go measure("Bloom Filter", &waitGroup, func() {
 		bloom.CanContain(target)
 	})
 
 	// Time the hash table.
-	go time("Hash table", func() {
+	go measure("Hash table", &waitGroup, func() {
 		hash := fnv.New64a()
 		hash.Write(target)
 		if _, ok := table[hash.Sum64()]; ok {
@@ -105,7 +105,7 @@ func main() {
 	})
 
 	// Time the list.
-	go time("List", func() {
+	go measure("List", &waitGroup, func() {
 		for _, ip := range list {
 			if bytes.Equal(ip, target) {
 				break
@@ -134,7 +134,7 @@ func stddev(average float64, list []float64) float64 {
 	return math.Sqrt(variance)
 }
 
-func time(name string, f func()) {
+func measure(name string, waitGroup *sync.WaitGroup, f func()) {
 	latencies := make([]float64, 10)
 	var begin time.Time
 	var latency time.Duration
