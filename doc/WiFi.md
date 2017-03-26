@@ -20,7 +20,7 @@ reporting requirement[2]. This thus implies that you are not allowed to willfull
 interfere with a third party, not even for defensive purposes to protect your
 own network from intrusion.
 
-Offensive strategies such as deauthenticating attackers are thus prohibited
+Offensive strategies such as deauthenticating attackers are thus prohibited
 The implications for network security measures are thus that the defenders are
 (at least in this aspect) "on the wrong side of the law", i.e. defenders are limited
 by law in what countermeasures they may take.
