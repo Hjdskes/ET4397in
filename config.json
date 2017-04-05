@@ -11,6 +11,8 @@
 			"bb:bb:bb:bb:bb:bb"
 		]
 	},
-	"interval": 1000000
+	"interval": 1000000000,
+	"syn-interval": 1000,
+	"syn-threshold": 2,
+	"forward-ip": "192.168.0.44"
 }
-

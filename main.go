@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"sync"
 
@@ -77,16 +78,28 @@ func main() {
 		log.Println(err)
 	}
 
+	// Parse and set the forwarding IP address.
+	fwdIP := net.ParseIP(configuration.ForwardIP)
+	if fwdIP == nil {
+		log.Fatal("Can't parse forwarding IP address: %s\n", configuration.ForwardIP)
+	}
+	fwdIP = fwdIP.To4()
+	if fwdIP == nil {
+		log.Fatal("Can't convert forwarding IP address to IPv4: %s\n", configuration.ForwardIP)
+	}
+
 	// Create the message hub.
 	hub := hub.NewHub()
 
 	// Create all the modules.
 	// TODO: make the selection of modules configurable on the command-line
+	var mutex = &sync.Mutex{}
 	modules := []module.Module{
-		&module.ARPModule{Hub: hub},
-		module.DNSModule{},
+		//&module.ARPModule{Hub: hub},
+		&module.DoSModule{Hub: hub, Mutex: mutex},
+		//module.DNSModule{},
 		module.LogModule{},
-		&module.WiFiModule{Hub: hub},
+		//&module.WiFiModule{Hub: hub},
 	}
 
 	// If there is a writer, append the WriteModule to the list of modules.
@@ -113,15 +126,25 @@ func main() {
 		go func(waitGroup *sync.WaitGroup) {
 			defer waitGroup.Done()
 
-			if ok := hub.Publish("packet", packet); ok {
-				// TODO: forward packet
-				fmt.Println("Forwarding packet!")
+			if ok := hub.Publish("packet", packet); !ok {
+				fmt.Println("DROP")
 			} else {
-				fmt.Println("Dropping packet!")
+				fmt.Println("FORWARD")
+				forward(handle, packet, fwdIP)
 			}
 		}(&waitGroup)
 	}
 
 	// Wait for threads to finish.
 	waitGroup.Wait()
+}
+
+func forward(handle *pcap.Handle, packet gopacket.Packet, fwdIP net.IP) {
+	ipLayer := packet.Layer(layers.LayerTypeIPv4)
+	if ipLayer != nil {
+		if ip, ok := ipLayer.(*layers.IPv4); ok {
+			ip.DstIP = fwdIP
+		}
+	}
+	handle.WritePacketData(packet.Data())
 }
