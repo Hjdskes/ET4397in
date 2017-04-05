@@ -18,10 +18,10 @@ func (m LogModule) Topics() []string {
 	return []string{"log"}
 }
 
-func (m LogModule) Receive(args []interface{}) {
+func (m LogModule) Receive(args []interface{}) bool {
 	if len(args) != 2 {
 		log.Println("LogModule needs a category and a message")
-		return
+		return true
 	}
 
 	cat, ok := args[0].(string)
@@ -33,7 +33,7 @@ func (m LogModule) Receive(args []interface{}) {
 	msg, ok := args[1].(string)
 	if !ok {
 		log.Println("LogModule message should be a string, aborting")
-		return
+		return true
 	}
 
 	switch cat {
@@ -42,6 +42,8 @@ func (m LogModule) Receive(args []interface{}) {
 	case "error":
 		m.logError(msg)
 	}
+
+	return true
 }
 
 func (m LogModule) logNotice(msg string) {

@@ -14,7 +14,10 @@ type Subscriber interface {
 	// Receive is called when there is a message under a certain topic to which the
 	// subscriber has subscribed. The message's contents are passed as arguments; the subscriber
 	// is responsible for converting them to the proper format.
-	Receive(args []interface{})
+	//
+	// The subscriber passes its verdict in the return value, where true
+	// means the package is safe and false means it's not.
+	Receive(args []interface{}) bool
 }
 
 // TODO: make *[]byte? Currently, the byte slice might is copied for every
@@ -27,7 +30,7 @@ type message struct {
 
 type subscription struct {
 	topics  []string
-	handler func([]interface{})
+	handler func([]interface{}) bool
 }
 
 // The Hub struct is the "broker" through which all messages go.
@@ -43,14 +46,19 @@ func NewHub() *Hub {
 }
 
 // Publish the data to be passed to any subscriber subscribed to this topic.
-func (h *Hub) Publish(topic string, args ...interface{}) {
+// Returns false as soon as one of the subscribers returns false, true
+// otherwise.
+func (h *Hub) Publish(topic string, args ...interface{}) bool {
 	// For each registered topic, it is checked if it matches the topic of
 	// the received message. If so, the message's arguments are sent to each
 	// subscriber subscribed to that topic.
 	subs := h.subscriptions[topic]
 	for _, sub := range subs {
-		sub.handler(args)
+		if ok := sub.handler(args); !ok {
+			return false
+		}
 	}
+	return true
 }
 
 // Subscribe subcribes a Subscriber for all its declared topics.

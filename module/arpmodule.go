@@ -63,25 +63,26 @@ func (m *ARPModule) Topics() []string {
 	return []string{"packet"}
 }
 
-func (m *ARPModule) Receive(args []interface{}) {
+func (m *ARPModule) Receive(args []interface{}) bool {
 	packet, ok := args[0].(gopacket.Packet)
 	if !ok {
 		log.Println("ARPModule received data that was not a packet")
-		return
+		return true
 	}
 
 	arpLayer := packet.Layer(layers.LayerTypeARP)
 	if arpLayer == nil {
-		return
+		return true
 	}
 
 	data := arpLayer.LayerContents()
 	arp, err := arp.DecodeARP(data)
 	if err != nil {
 		m.Hub.Publish("error", err.Error())
-	} else {
-		m.analyse(arp)
+		return true
 	}
+
+	return m.analyse(arp)
 }
 
 const (
@@ -93,7 +94,7 @@ const (
 	spuriousReply  = "Host %v is sending a spurious reply"
 )
 
-func (m *ARPModule) analyse(a *arp.ARP) {
+func (m *ARPModule) analyse(a *arp.ARP) bool {
 	switch a.Opcode {
 	case arp.ARPOpcodeRequest:
 		if a.IsGratuitous() {
@@ -112,19 +113,26 @@ func (m *ARPModule) analyse(a *arp.ARP) {
 		// replies.
 		if m.isSpurious(a) {
 			m.Hub.Publish("log", "notice", fmt.Sprintf(spuriousReply, a.SPAddress))
+			return false
 		}
 
 		// Now we check for malicious ARP replies.
 		if a.IsBindingEthernet() {
 			m.Hub.Publish("log", "error", fmt.Sprintf(bindEthernet, a.SPAddress))
+			return false
 		} else if a.IsBroadcastReply() {
 			m.Hub.Publish("log", "notice", fmt.Sprintf(broadcastReply, a.SPAddress, a.TPAddress))
+			return false
 		} else if a.IsGratuitous() {
 			m.Hub.Publish("log", "notice", fmt.Sprintf(gratuitous, a.SPAddress, a.Opcode))
+			return false
 		} else if !m.isValidBinding(a) {
 			m.Hub.Publish("log", "notice", fmt.Sprintf(invalidBinding, a.SPAddress, a.SHAddress))
+			return false
 		}
 	}
+
+	return true
 }
 
 func (m *ARPModule) isSpurious(a *arp.ARP) bool {

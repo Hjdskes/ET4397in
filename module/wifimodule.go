@@ -48,18 +48,18 @@ const (
 	replay = "Host %v is possibly performing an ARP replay attack"
 )
 
-func (m *WiFiModule) Receive(args []interface{}) {
+func (m *WiFiModule) Receive(args []interface{}) bool {
 	cur := time.Now()
 
 	packet, ok := args[0].(gopacket.Packet)
 	if !ok {
 		log.Println("WiFiModule received data that was not a packet")
-		return
+		return true
 	}
 
 	dot11Layer := packet.Layer(layers.LayerTypeDot11)
 	if dot11Layer == nil {
-		return
+		return true
 	}
 
 	dot11 := &layers.Dot11{}
@@ -68,25 +68,28 @@ func (m *WiFiModule) Receive(args []interface{}) {
 
 	switch dot11.Type {
 	case layers.Dot11TypeMgmtDisassociation, layers.Dot11TypeMgmtDeauthentication:
-		m.deauth(dot11, cur)
+		return m.deauth(dot11, cur)
 	case layers.Dot11TypeData:
 		if dot11.Flags.WEP() {
 			contents := packet.Layer(layers.LayerTypeDot11WEP).LayerContents()
-			m.arpReplay(dot11, contents, cur)
+			return m.arpReplay(dot11, contents, cur)
 		}
 	}
+
+	return true
 }
 
-func (m *WiFiModule) deauth(dot11 *layers.Dot11, cur time.Time) {
+func (m *WiFiModule) deauth(dot11 *layers.Dot11, cur time.Time) bool {
 	// If this disassociation or deauthentication frame is sent within the
 	// interval, we notice this as a possible attack.
 	if cur.Sub(m.prevDeauthTime)*time.Nanosecond < time.Duration(m.interval) {
 		m.Hub.Publish("log", "notice", fmt.Sprintf(deauth, dot11.Address1))
 	}
 	m.prevDeauthTime = cur
+	return true
 }
 
-func (m *WiFiModule) arpReplay(dot11 *layers.Dot11, data []byte, cur time.Time) {
+func (m *WiFiModule) arpReplay(dot11 *layers.Dot11, data []byte, cur time.Time) bool {
 	// If this WEP packet is sent within the interval and the contents match
 	// the contents of one of the last 10 receives packets, we notice this
 	// as a possible attack.
@@ -111,4 +114,6 @@ func (m *WiFiModule) arpReplay(dot11 *layers.Dot11, data []byte, cur time.Time) 
 	}
 	m.weps.Push(data)
 	m.prevWEPTime = cur
+
+	return true
 }

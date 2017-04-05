@@ -21,16 +21,16 @@ func (m DNSModule) Topics() []string {
 	return []string{"packet"}
 }
 
-func (m DNSModule) Receive(args []interface{}) {
+func (m DNSModule) Receive(args []interface{}) bool {
 	packet, ok := args[0].(gopacket.Packet)
 	if !ok {
 		log.Println("DNSModule received data that was not a packet")
-		return
+		return true
 	}
 
 	dnsLayer := packet.Layer(layers.LayerTypeDNS)
 	if dnsLayer == nil {
-		return
+		return true
 	}
 
 	data := dnsLayer.LayerContents()
@@ -40,4 +40,6 @@ func (m DNSModule) Receive(args []interface{}) {
 	} else {
 		fmt.Println(dns)
 	}
+
+	return true
 }

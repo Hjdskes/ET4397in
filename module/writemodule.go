@@ -20,12 +20,13 @@ func (m WriteModule) Topics() []string {
 	return []string{"packet"}
 }
 
-func (m WriteModule) Receive(args []interface{}) {
+func (m WriteModule) Receive(args []interface{}) bool {
 	packet, ok := args[0].(gopacket.Packet)
 	if !ok {
 		log.Println("WriteModule received data that was not a packet")
-		return
+		return true
 	}
 
 	m.Writer.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
+	return true
 }

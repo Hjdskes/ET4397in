@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/Hjdskes/ET4397IN/config"
 	"github.com/Hjdskes/ET4397IN/hub"
@@ -82,7 +84,7 @@ func main() {
 	// TODO: make the selection of modules configurable on the command-line
 	modules := []module.Module{
 		&module.ARPModule{Hub: hub},
-		//module.DNSModule{},
+		module.DNSModule{},
 		module.LogModule{},
 		&module.WiFiModule{Hub: hub},
 	}
@@ -105,7 +107,21 @@ func main() {
 
 	// Create a PacketSource from which we can retrieve packets.
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	var waitGroup sync.WaitGroup
 	for packet := range packetSource.Packets() {
-		hub.Publish("packet", packet)
+		waitGroup.Add(1)
+		go func(waitGroup *sync.WaitGroup) {
+			defer waitGroup.Done()
+
+			if ok := hub.Publish("packet", packet); ok {
+				// TODO: forward packet
+				fmt.Println("Forwarding packet!")
+			} else {
+				fmt.Println("Dropping packet!")
+			}
+		}(&waitGroup)
 	}
+
+	// Wait for threads to finish.
+	waitGroup.Wait()
 }
